@@ -2,8 +2,29 @@ import React from 'react';
 import styles from '../css/Navbar.module.css';
 import { Link } from "react-router-dom";
 import minhaImagem from '../images/logo.png';
+import { useNavigate } from 'react-router-dom';
 
 function Navbar() {
+  const navigate = useNavigate();
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    
+    const response = await fetch('/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (response.ok) {
+      // 💾 Salva no localStorage (converte o boolean para string)
+      localStorage.setItem('isLogged', 'false');
+      window.location.reload();
+    } else {
+      alert('Erro ao sair!');
+    }
+  };
+
   return (
     <nav className={styles.navbar}>
       <div className={styles.logo}>       
@@ -12,14 +33,19 @@ function Navbar() {
 
 <div className={styles.links}>
 
-    <Link className={styles.link} to="/">Início</Link>
+    <Link className={styles.link} to="/home">Início</Link>
 
 
     <div className={styles.dropdown}>
         <span>Estoque</span>
         <div className={styles.submenu}>
-            <Link className={styles.submenutext} to="/estoque">Visualizar</Link>
-            <Link className={styles.submenutext} to="/estoque/editar">Editar</Link>
+            {/* 🔐 Links exclusivos do ADMIN usando renderização condicional */}
+            {isAdmin && (
+                <Link className={styles.submenutext} to="/estoque/editar">Editar</Link>
+            ) 
+            }
+              <Link className={styles.submenutext} to="/estoque">Visualizar</Link>
+            
         </div>
     </div>
 
@@ -35,15 +61,19 @@ function Navbar() {
     <div className={styles.dropdown}>
         <span>Pedidos</span>
         <div className={styles.submenu}>
-            <Link className={styles.submenutext} to="/pedidos/pedidos">Visualizar</Link>
-            <Link className={styles.submenutext} to="/pedidos/entrada">Dar entrada</Link>
+                        {/* 🔐 Links exclusivos do ADMIN usando renderização condicional */}
+            {isAdmin && (
+                <Link className={styles.submenutext} to="/pedidos/entrada">Dar entrada</Link>
+            )
+            }
+              <Link className={styles.submenutext} to="/pedidos/pedidos">Visualizar</Link>
         </div>
     </div>
 
 
 </div>
       <div className={styles.saida}>       
-        <Link className={styles.link} to="/logout">Sair</Link>
+        <Link onClick={handleLogout} className={styles.link} to="/logout">Sair</Link>
       </div>
     </nav>
   );
