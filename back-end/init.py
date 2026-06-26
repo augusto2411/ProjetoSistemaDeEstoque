@@ -51,17 +51,63 @@ with app.app_context():
     if not Tela.query.first():
         
         # Exemplo 1: Tela de Samsung usando o ID da marca que acabou de ser criada/recuperada
+        # Samsung
         tela1 = Tela(
             modelo="Galaxy S23 Ultra",
             quantidade=5,
             com_aro=True,
             valor_atacado=Decimal('750.00'),
             valor_varejo=Decimal('990.00'),
-            marca_id=marcas_criadas['Samsung'].id  # Aqui é feita a ligação automática!
+            marca_id=marcas_criadas['Samsung'].id
         )
-        
-        # Exemplo 2: Tela de iPhone (Apple) sem aro
+
         tela2 = Tela(
+            modelo="Galaxy S24 Ultra",
+            quantidade=4,
+            com_aro=True,
+            valor_atacado=Decimal('890.00'),
+            valor_varejo=Decimal('1150.00'),
+            marca_id=marcas_criadas['Samsung'].id
+        )
+
+        tela3 = Tela(
+            modelo="Galaxy S23",
+            quantidade=8,
+            com_aro=False,
+            valor_atacado=Decimal('480.00'),
+            valor_varejo=Decimal('680.00'),
+            marca_id=marcas_criadas['Samsung'].id
+        )
+
+        tela4 = Tela(
+            modelo="Galaxy A54",
+            quantidade=10,
+            com_aro=False,
+            valor_atacado=Decimal('250.00'),
+            valor_varejo=Decimal('380.00'),
+            marca_id=marcas_criadas['Samsung'].id
+        )
+
+        tela5 = Tela(
+            modelo="Galaxy A34",
+            quantidade=12,
+            com_aro=False,
+            valor_atacado=Decimal('220.00'),
+            valor_varejo=Decimal('340.00'),
+            marca_id=marcas_criadas['Samsung'].id
+        )
+
+        tela6 = Tela(
+            modelo="Galaxy A15",
+            quantidade=20,
+            com_aro=False,
+            valor_atacado=Decimal('140.00'),
+            valor_varejo=Decimal('240.00'),
+            marca_id=marcas_criadas['Samsung'].id
+        )
+
+        # Apple
+        tela7 = Tela(
             modelo="iPhone 13 Pro",
             quantidade=3,
             com_aro=False,
@@ -70,17 +116,153 @@ with app.app_context():
             marca_id=marcas_criadas['Apple'].id
         )
 
-        # Exemplo 3: Outra tela da Samsung, mas sem aro
-        tela3 = Tela(
-            modelo="Galaxy A54",
+        tela8 = Tela(
+            modelo="iPhone 13",
+            quantidade=5,
+            com_aro=False,
+            valor_atacado=Decimal('820.00'),
+            valor_varejo=Decimal('1150.00'),
+            marca_id=marcas_criadas['Apple'].id
+        )
+
+        tela9 = Tela(
+            modelo="iPhone 14",
+            quantidade=4,
+            com_aro=False,
+            valor_atacado=Decimal('980.00'),
+            valor_varejo=Decimal('1350.00'),
+            marca_id=marcas_criadas['Apple'].id
+        )
+
+        tela10 = Tela(
+            modelo="iPhone 14 Pro Max",
+            quantidade=2,
+            com_aro=False,
+            valor_atacado=Decimal('1550.00'),
+            valor_varejo=Decimal('2100.00'),
+            marca_id=marcas_criadas['Apple'].id
+        )
+
+        tela11 = Tela(
+            modelo="iPhone 11",
+            quantidade=8,
+            com_aro=False,
+            valor_atacado=Decimal('450.00'),
+            valor_varejo=Decimal('680.00'),
+            marca_id=marcas_criadas['Apple'].id
+        )
+
+        # Motorola
+        tela12 = Tela(
+            modelo="Moto G84",
+            quantidade=9,
+            com_aro=False,
+            valor_atacado=Decimal('190.00'),
+            valor_varejo=Decimal('320.00'),
+            marca_id=marcas_criadas['Motorola'].id
+        )
+
+        tela13 = Tela(
+            modelo="Moto G54",
             quantidade=10,
             com_aro=False,
-            valor_atacado=Decimal('250.00'),
-            valor_varejo=Decimal('380.00'),
-            marca_id=marcas_criadas['Samsung'].id
+            valor_atacado=Decimal('170.00'),
+            valor_varejo=Decimal('290.00'),
+            marca_id=marcas_criadas['Motorola'].id
         )
-        
-        db.session.add_all([tela1, tela2, tela3]) # add_all adiciona uma lista de uma vez
+
+        tela14 = Tela(
+            modelo="Edge 40",
+            quantidade=5,
+            com_aro=True,
+            valor_atacado=Decimal('420.00'),
+            valor_varejo=Decimal('620.00'),
+            marca_id=marcas_criadas['Motorola'].id
+        )
+
+        tela15 = Tela(
+            modelo="Moto G73",
+            quantidade=6,
+            com_aro=False,
+            valor_atacado=Decimal('180.00'),
+            valor_varejo=Decimal('300.00'),
+            marca_id=marcas_criadas['Motorola'].id
+        )
+
+        # Xiaomi
+        tela16 = Tela(
+            modelo="Redmi Note 13",
+            quantidade=15,
+            com_aro=False,
+            valor_atacado=Decimal('170.00'),
+            valor_varejo=Decimal('290.00'),
+            marca_id=marcas_criadas['Xiaomi'].id
+        )
+
+        tela17 = Tela(
+            modelo="Redmi Note 13 Pro",
+            quantidade=8,
+            com_aro=False,
+            valor_atacado=Decimal('280.00'),
+            valor_varejo=Decimal('430.00'),
+            marca_id=marcas_criadas['Xiaomi'].id
+        )
+
+        tela18 = Tela(
+            modelo="Poco X6",
+            quantidade=7,
+            com_aro=False,
+            valor_atacado=Decimal('260.00'),
+            valor_varejo=Decimal('410.00'),
+            marca_id=marcas_criadas['Xiaomi'].id
+        )
+
+        tela19 = Tela(
+            modelo="Redmi 13C",
+            quantidade=18,
+            com_aro=False,
+            valor_atacado=Decimal('120.00'),
+            valor_varejo=Decimal('220.00'),
+            marca_id=marcas_criadas['Xiaomi'].id
+        )
+
+        # LG
+        tela22 = Tela(
+            modelo="LG K62",
+            quantidade=4,
+            com_aro=False,
+            valor_atacado=Decimal('110.00'),
+            valor_varejo=Decimal('200.00'),
+            marca_id=marcas_criadas['LG'].id
+        )
+
+        tela23 = Tela(
+            modelo="LG K52",
+            quantidade=5,
+            com_aro=False,
+            valor_atacado=Decimal('100.00'),
+            valor_varejo=Decimal('180.00'),
+            marca_id=marcas_criadas['LG'].id
+        )
+
+        tela24 = Tela(
+            modelo="LG Velvet",
+            quantidade=2,
+            com_aro=True,
+            valor_atacado=Decimal('320.00'),
+            valor_varejo=Decimal('520.00'),
+            marca_id=marcas_criadas['LG'].id
+        )
+
+        # Adicionar todas ao banco
+        db.session.add_all([
+            tela1, tela2, tela3, tela4, tela5, tela6,
+            tela7, tela8, tela9, tela10, tela11,
+            tela12, tela13, tela14, tela15,
+            tela16, tela17, tela18, tela19,
+            tela22, tela23, tela24
+        ])
+
         db.session.commit()
         print("Telas iniciais de teste criadas com sucesso!")
     else:

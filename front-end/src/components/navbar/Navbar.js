@@ -2,10 +2,9 @@ import React from 'react';
 import styles from '../css/Navbar.module.css';
 import { Link } from "react-router-dom";
 import minhaImagem from '../images/logo.png';
-import { useNavigate } from 'react-router-dom';
 
 function Navbar() {
-  const navigate = useNavigate();
+
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
   const handleLogout = async (e) => {
@@ -36,17 +35,9 @@ function Navbar() {
     <Link className={styles.link} to="/home">Início</Link>
 
 
+
     <div className={styles.dropdown}>
-        <span>Estoque</span>
-        <div className={styles.submenu}>
-            {/* 🔐 Links exclusivos do ADMIN usando renderização condicional */}
-            {isAdmin && (
-                <Link className={styles.submenutext} to="/estoque/editar">Editar</Link>
-            ) 
-            }
-              <Link className={styles.submenutext} to="/estoque">Visualizar</Link>
-            
-        </div>
+        <Link className={styles.link} to="/estoque">Estoque</Link>
     </div>
 
 

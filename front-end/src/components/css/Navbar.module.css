@@ -12,7 +12,7 @@
   left: 0;
   width: 100vw;
   min-width: max-content;
-  min-height: 30px;
+  min-height: 60px;
   padding: 0 40px;
   font-family: fonte, serif;
   display: flex;
@@ -26,7 +26,7 @@
 
 .logo img{
   padding-right: 4.5rem;
-  height: 1.5rem; /* controla altura */
+  height: 3rem; /* controla altura */
   width: auto;    /* mantém proporção */
   object-fit: contain;
 }
@@ -61,6 +61,7 @@
 .dropdown{
     position: relative;
     cursor: pointer;
+    font-size: 2rem;
 }
 
 .submenu{
@@ -99,6 +100,7 @@
   font-family: fonte, serif;
   color:#F5B40E;
   text-decoration: none;
+  font-size: 2rem;
 }
 
 span{

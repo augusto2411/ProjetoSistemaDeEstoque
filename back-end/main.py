@@ -1,7 +1,22 @@
-from decimal import Decimal            
+from decimal import Decimal
+from functools import wraps            
 from flask import Flask, request, jsonify, session
 from database import db
 from models import Usuario, Marca, Tela
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 1. Verifica se o usuário está logado
+        if 'usuario_id' not in session:
+            return jsonify({'erro': 'Login necessário.'}), 401
+        
+        # 2. Verifica se o usuário é administrador
+        if not session.get('is_admin'):
+            return jsonify({'erro': 'Acesso negado. Apenas administradores.'}), 403
+            
+        return f(*args, **kwargs)
+    return decorated_function
 
 app = Flask(__name__)
 app.secret_key = 'Sugon2020d'  # Necessário para usar sessions
@@ -40,6 +55,7 @@ def listar_telas():
 # 2. ROTA DE CRIAÇÃO (POST)
 # ==========================================
 @app.route('/api/telas', methods=['POST'])
+@admin_required
 def criar_tela():
     dados = request.get_json()
     
@@ -66,11 +82,13 @@ def criar_tela():
 # 3. ROTA DE EDIÇÃO (PUT)
 # ==========================================
 @app.route('/api/telas/<int:id>', methods=['PUT'])
+@admin_required
 def editar_tela(id):
     # Busca a tela específica pelo ID ou retorna 404 se não achar
     tela = Tela.query.get_or_404(id)
     dados = request.get_json()
-    
+    marca_id_atual = dados.get('marca_id')
+
     try:
         # Atualiza os campos com os novos dados vindos da linha editada
         tela.modelo = dados.get('modelo', tela.modelo)
@@ -78,7 +96,7 @@ def editar_tela(id):
         tela.com_aro = bool(dados.get('com_aro', tela.com_aro))
         tela.valor_atacado = Decimal(str(dados.get('valor_atacado', tela.valor_atacado)))
         tela.valor_varejo = Decimal(str(dados.get('valor_varejo', tela.valor_varejo)))
-        tela.marca_id = int(dados.get('marca_id', tela.marca_id))
+        tela.marca_id = int(marca_id_atual) if marca_id_atual is not None else tela.marca_id
         
         db.session.commit()
         return jsonify({"mensagem": f"Tela {id} atualizada com sucesso!"}), 200
@@ -91,6 +109,7 @@ def editar_tela(id):
 # 4. ROTA DE EXCLUSÃO (DELETE)
 # ==========================================
 @app.route('/api/telas/<int:id>', methods=['DELETE'])
+@admin_required
 def excluir_tela(id):
     tela = Tela.query.get_or_404(id)
     
@@ -123,6 +142,12 @@ def login():
         }), 200
         
     return jsonify({"erro": "Login ou senha incorretos"}), 401
+
+@app.route('/api/marcas', methods=['GET'])
+def listar_marcas():
+    marcas = Marca.query.all()
+    lista_marcas = [{'id': m.id, 'nome': m.nome} for m in marcas]
+    return jsonify(lista_marcas), 200
 
 @app.route('/logout', methods=['POST'])
 def logout():

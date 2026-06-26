@@ -1,0 +1,80 @@
+.estoqueContainer {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 60px);
+    padding: 40px 20px;
+    box-sizing: border-box;
+}
+
+.estoqueBox {
+    background-color: #f5b40e93;
+    padding: 30px;
+    border-radius: 8px;
+    width: 80rem;
+    max-width: 75rem;
+    font-family: fonte, serif; /* Substitua por 'fonte' se tiver a fonte local mapeada */
+    color: black;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    overflow-x: auto;
+}
+
+/* Estilos da Tabela */
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: white;
+}
+
+.tabela th {
+    background-color: #000000;
+    color: white;
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.tabela td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+/* Inputs dentro da tabela no modo edição */
+.inputTexto, .inputNumero {
+    width: 90%;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Botões de Ação */
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.btnSalvar {
+    background-color: #28A745;
+    color: white;
+}
+
+.btnCancelar {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btnEditar {
+    background-color: #FFC107;
+    color: black;
+}
+
+.btnExcluir {
+    background-color: #DC3545;
+    color: white;
+}

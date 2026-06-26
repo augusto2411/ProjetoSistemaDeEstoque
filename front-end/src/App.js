@@ -4,6 +4,7 @@ import Navbar from './components/navbar/Navbar';
 import { Routes, Route, Navigate } from 'react-router-dom'; // Removido o BrowserRouter daqui
 import Login from './components/login/Login';
 import { useState } from 'react'; // 1. Importe o useState
+import Estoque from './components/estoque/Estoque'; // Importe o componente Estoque
 
 function RotaAdmin({ children }) {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -59,10 +60,10 @@ function App() {
         
         {/* 🔒 Rotas Protegidas */}
         <Route 
-          path="/home" 
+          path="/estoque" 
           element={
             <RotaProtegida>
-              <Home />
+              <Estoque />
             </RotaProtegida>
           } 
         />
