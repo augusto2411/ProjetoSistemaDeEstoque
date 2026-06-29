@@ -6,7 +6,17 @@
     padding: 40px 20px;
     box-sizing: border-box;
 }
-
+.inputCheckbox {
+    transform: scale(2.5); /* Aumenta em 1.5x */
+  margin: 10px;          /* Espaço extra ao redor */
+}
+.titulo {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    text-align: center;
+    color: black;
+    font-family: fonte, serif; /* Substitua por 'fonte' se tiver a fonte local mapeada */
+}
 .estoqueBox {
     background-color: #f5b40e93;
     padding: 30px;

@@ -155,7 +155,7 @@ useEffect(() => {
   return (
     <div className={styles.estoqueContainer}>
       <div className={styles.estoqueBox}>
-        
+
         {/* Topo da tabela com Botão e Barra de Pesquisa */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <input 
@@ -168,7 +168,7 @@ useEffect(() => {
             onChange={(e) => setPesquisa(e.target.value)}
           />
           {isAdmin && (
-                <button 
+          <button 
             className={`${styles.btn} ${styles.btnSalvar}`} 
             onClick={() => setModoCriacao(true)}
             disabled={modoCriacao}
@@ -182,14 +182,13 @@ useEffect(() => {
           {/* 3. CAMPO DE PESQUISA */}
 
         </div>
-
         <table className={styles.tabela}>
           <thead>
             <tr>
 
               <th>Marca</th>
               <th>Modelo</th>
-              <th>Qtd</th>
+              <th>Quantidade</th>
               <th>Aro</th>
               <th>Atacado</th>
               <th>Varejo</th>
@@ -235,7 +234,8 @@ useEffect(() => {
                   />
                 </td>
                 <td>
-                  <input 
+                  <input
+                  className={styles.inputCheckbox} 
                     type="checkbox" 
                     checked={novaTela.com_aro}
                     onChange={(e) => setNovaTela({...novaTela, com_aro: e.target.checked})}
@@ -294,6 +294,7 @@ useEffect(() => {
                     </td>
                     <td>
                       <input 
+                      className={styles.inputCheckbox}
                         type="checkbox" 
                         checked={dadosEditados.com_aro} 
                         onChange={(e) => setDadosEditados({...dadosEditados, com_aro: e.target.checked})} 

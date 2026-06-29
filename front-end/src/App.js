@@ -5,6 +5,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'; // Removido o Browse
 import Login from './components/login/Login';
 import { useState } from 'react'; // 1. Importe o useState
 import Estoque from './components/estoque/Estoque'; // Importe o componente Estoque
+import VisualizarSaidas from './components/saidas/VisualizarSaidas'; // Importe o componente VisualizarSaidas
+import VisualizarPedidos from './components/pedidos/VisualizarPedidos'; // Importe o componente VisualizarPedidos
+import DarEntrada from './components/pedidos/DarEntrada'; // Importe o componente DarEntrada
 
 function RotaAdmin({ children }) {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -66,20 +69,37 @@ function App() {
               <Estoque />
             </RotaProtegida>
           } 
+          
         />
-
+        <Route 
+          path="/saidas" 
+          element={
+            <RotaProtegida>
+              <VisualizarSaidas />
+            </RotaProtegida>
+          } 
+          
+        />
         {/* 🔐 Rota Super Protegida */}
         <Route 
-          path="/cadastrar-produto" 
+          path="/pedidos" 
           element={
             <RotaAdmin>
-              {/* Seu componente de cadastro vai aqui depois */}
+              <VisualizarPedidos />
+            </RotaAdmin>
+          } 
+        />
+        <Route 
+          path="/entrada" 
+          element={
+            <RotaAdmin>
+              <DarEntrada />
             </RotaAdmin>
           } 
         />
 
         {/* Rota padrão */}
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        <Route path="*" element={<Navigate to="/estoque" replace />} />
       </Routes>
     </>
   );

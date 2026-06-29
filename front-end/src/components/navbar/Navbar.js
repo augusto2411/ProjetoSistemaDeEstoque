@@ -2,9 +2,20 @@ import React from 'react';
 import styles from '../css/Navbar.module.css';
 import { Link } from "react-router-dom";
 import minhaImagem from '../images/logo.png';
+import ModalDarSaida from './ModalDarSaida'; // Importa o modal que criamos acima[
+import { useState } from 'react';
 
 function Navbar() {
+  const [modalAberto, setModalAberto] = useState(false);
 
+  const aoConcluirSaida = () => {
+    // Se você estiver na página de listagem de saídas ou estoque, 
+    // pode disparar um recarregamento aqui. Ex: window.location.reload();
+    // Ou simplesmente deixa o Polling automático de 30s atualizar as telas.
+    if (window.location.pathname.includes('saidas')) {
+        window.location.reload(); 
+    }
+  };
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
   const handleLogout = async (e) => {
@@ -44,22 +55,30 @@ function Navbar() {
     <div className={styles.dropdown}>
         <span >Saidas</span>
         <div className={styles.submenu}>
-            <Link className={styles.submenutext} to="/saidas/saidas">Visualizar</Link>
-            <Link className={styles.submenutext} to="/saidas/darsaida">Dar saida</Link>
+            <Link className={styles.submenutext} to="/saidas">Visualizar</Link>
+            <p className={styles.submenutext} onClick={() => setModalAberto(true)} >Dar Saída</p>
+            <ModalDarSaida 
+        isOpen={modalAberto} 
+        onClose={() => setModalAberto(false)} 
+        aoSucesso={aoConcluirSaida}
+      />
         </div>
     </div>
-
-    <div className={styles.dropdown}>
+    
+    {isAdmin && (
+               <div className={styles.dropdown}>
         <span>Pedidos</span>
         <div className={styles.submenu}>
                         {/* 🔐 Links exclusivos do ADMIN usando renderização condicional */}
-            {isAdmin && (
-                <Link className={styles.submenutext} to="/pedidos/entrada">Dar entrada</Link>
-            )
-            }
-              <Link className={styles.submenutext} to="/pedidos/pedidos">Visualizar</Link>
+            
+                <Link className={styles.submenutext} to="/entrada">Dar entrada</Link>
+              <Link className={styles.submenutext} to="/pedidos">Visualizar</Link>
         </div>
     </div>
+            )
+            }
+      
+    
 
 
 </div>
