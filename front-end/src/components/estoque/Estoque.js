@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../css/Estoque.module.css';
+import Swal from 'sweetalert2';
 
 function Estoque() {
   const [telas, setTelas] = useState([]);
@@ -99,6 +100,23 @@ useEffect(() => {
   };
 
   const salvarEdicao = async (id) => {
+    const atacado = parseFloat(dadosEditados.valor_atacado) || 0;
+    const varejo = parseFloat(dadosEditados.valor_varejo) || 0;
+
+    if (atacado < 0 || varejo < 0) {
+    Swal.fire({
+      title: 'Valores Inválidos',
+      text: 'Os preços de atacado ou varejo não podem ser negativos!',
+      icon: 'error',
+      confirmButtonColor: '#000',
+      didOpen: () => {
+        // Mantém o alerta na frente caso use algum modal por trás
+        Swal.getContainer().style.zIndex = "3000";
+      }
+    });
+    return; // Para a execução e não envia para o back-end
+  }
+
     try {
       const resposta = await fetch(`/api/telas/${id}`, {
         method: 'PUT',
@@ -115,18 +133,55 @@ useEffect(() => {
   };
 
   const excluirTela = async (id) => {
-    if (window.confirm("Tem certeza que deseja excluir esta tela?")) {
-      try {
-        const resposta = await fetch(`/api/telas/${id}`, {
-          method: 'DELETE'
-        });
-        if (resposta.ok) {
-          carregarDados();
-        }
-      } catch (erro) {
-        console.error("Erro ao excluir:", erro);
-      }
+    const resultadoConfirmacao = await Swal.fire({
+  title: 'Tem certeza?',
+  text: "Você não poderá reverter esta exclusão!",
+  icon: 'warning',
+  showCancelButton: true,
+  confirmButtonColor: '#d33', // Vermelho para exclusão
+  cancelButtonColor: '#000',  // Preto para cancelar
+  confirmButtonText: 'Sim, excluir!',
+  cancelButtonText: 'Cancelar',
+  didOpen: () => {
+    Swal.getContainer().style.zIndex = "3000"; // Garante que fica por cima de tudo
+  }
+});
+
+if (resultadoConfirmacao.isConfirmed) {
+  try {
+    const resposta = await fetch(`/api/telas/${id}`, {
+      method: 'DELETE'
+    });
+    if (resposta.ok) {
+      carregarDados();
+      // Opcional: Alerta de sucesso rápido
+      Swal.fire({
+        title: 'Excluído!',
+        text: 'A tela foi removida.',
+        icon: 'success',
+        confirmButtonColor: '#28a745',
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+      });
+    } else {
+      Swal.fire({
+        title: 'Erro!',
+        text: 'Não foi possível excluir esta tela.',
+        icon: 'error',
+        confirmButtonColor: '#000',
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+      });
     }
+  } catch (erro) {
+    console.error("Erro ao excluir:", erro);
+    Swal.fire({
+      title: 'Erro Crítico!',
+      text: 'Falha de comunicação com o servidor.',
+      icon: 'error',
+      confirmButtonColor: '#000',
+      didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+    });
+  }
+}
   };
 
   // =================================================================
@@ -304,7 +359,8 @@ useEffect(() => {
                       <input 
                         className={styles.inputNumero}
                         type="number" 
-                        step="0.01" 
+                        step="0.01"
+                        min="0"
                         value={dadosEditados.valor_atacado} 
                         onChange={(e) => setDadosEditados({...dadosEditados, valor_atacado: e.target.value})} 
                       />
@@ -314,6 +370,7 @@ useEffect(() => {
                         className={styles.inputNumero}
                         type="number" 
                         step="0.01" 
+                        min="0"
                         value={dadosEditados.valor_varejo} 
                         onChange={(e) => setDadosEditados({...dadosEditados, valor_varejo: e.target.value})} 
                       />

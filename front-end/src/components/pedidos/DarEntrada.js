@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../css/Estoque.module.css'; // Reutiliza seu padrão visual impecável
+import Swal from 'sweetalert2';
 
 function DarEntrada() {
   const [pedidosPendentes, setPedidosPendentes] = useState([]);
@@ -96,10 +97,18 @@ function DarEntrada() {
     e.preventDefault();
     if (!pedidoSelecionadoId) return;
 
-    const confirmar = window.confirm(
-      "Deseja confirmar a entrada deste pedido?\n\nAs quantidades informadas serão somadas ao estoque. O que ficou em falta será jogado de volta nas Saídas."
-    );
-    if (!confirmar) return;
+const resultadoConfirmacao = await Swal.fire({
+      title: 'Deseja confirmar a entrada?',
+      text: "As quantidades informadas serão somadas ao estoque. O que ficou em falta voltará para as Saídas.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#000',
+      confirmButtonText: 'Sim, confirmar!',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!resultadoConfirmacao.isConfirmed) return;
 
     let payload = {
       itens: itensConferidos, 
@@ -120,22 +129,59 @@ function DarEntrada() {
         let novosItensComPreco = [...itensConferidos];
 
         for (let itemSemPreco of dadosResultado.itens_pendentes) {
-          const precoAtacadoInput = window.prompt(
-            `💰 A tela ${itemSemPreco.marca.toUpperCase()} ${itemSemPreco.modelo.toUpperCase()} está sem preço no estoque.\n\nDigite o PREÇO DE CUSTO / ATACADO:`
-          );
-          if (precoAtacadoInput === null) return; 
+          let precoAtacado = null;
+          let precoVarejo = null;
 
-          const precoVarejoInput = window.prompt(
-            `🏷️ Digite o PREÇO DE VENDA / VAREJO para a tela ${itemSemPreco.modelo.toUpperCase()}:`
-          );
-          if (precoVarejoInput === null) return;
+          // SÓ ABRE O MODAL DE ATACADO SE REALMENTE ESTIVER FALTANDO NO BANCO
+          if (itemSemPreco.falta_atacado) {
+            const { value } = await Swal.fire({
+              title: `💰 Preço de Custo`,
+              html: `A tela <b>${itemSemPreco.marca.toUpperCase()} ${itemSemPreco.modelo.toUpperCase()}</b> está sem preço de atacado.<br><br>Digite o <b>PREÇO DE ATACADO:</b>`,
+              input: 'number',
+              inputAttributes: { step: '0.01', min: '0' },
+              inputPlaceholder: '0.00',
+              showCancelButton: true,
+              confirmButtonColor: '#000',
+              confirmButtonText: 'Próximo →',
+              cancelButtonText: 'Cancelar',
+              inputValidator: (value) => {
+                if (!value) return 'Você precisa digitar um valor!';
+              }
+            });
 
+            if (value === undefined) return; // Se clicou em cancelar, aborta o processo
+            precoAtacado = parseFloat(value);
+          }
+
+          // SÓ ABRE O MODAL DE VAREJO SE REALMENTE ESTIVER FALTANDO NO BANCO
+          if (itemSemPreco.falta_varejo) {
+            const { value } = await Swal.fire({
+              title: `🏷️ Preço de Venda`,
+              html: `A tela <b>${itemSemPreco.marca.toUpperCase()} ${itemSemPreco.modelo.toUpperCase()}</b> está sem preço de varejo.<br><br>Digite o <b>PREÇO DE VAREJO:</b>`,
+              input: 'number',
+              inputAttributes: { step: '0.01', min: '0' },
+              inputPlaceholder: '0.00',
+              showCancelButton: true,
+              confirmButtonColor: '#28a745',
+              confirmButtonText: 'Salvar Preço',
+              cancelButtonText: 'Cancelar',
+              inputValidator: (value) => {
+                if (!value) return 'Você precisa digitar um valor!';
+              }
+            });
+
+            if (value === undefined) return; // Se clicou em cancelar, aborta o processo
+            precoVarejo = parseFloat(value);
+          }
+
+          // Atualiza a estrutura para enviar ao back-end
           novosItensComPreco = novosItensComPreco.map(itemOriginal => {
             if (itemOriginal.id === itemSemPreco.id) {
               return {
                 ...itemOriginal,
-                preco_custo: parseFloat(precoAtacadoInput) || 0.0,
-                preco_venda: parseFloat(precoVarejoInput) || 0.0
+                // Mantém null se o modal não foi exibido, assim o back-end sabe que não deve alterar o valor antigo
+                preco_custo: precoAtacado, 
+                preco_venda: precoVarejo
               };
             }
             return itemOriginal;
@@ -154,13 +200,23 @@ function DarEntrada() {
       }
 
       if (resEnvio.ok) {
-        alert("Entrada de pedido processada e estoque atualizado com sucesso!");
+        Swal.fire({
+          title: 'Sucesso!',
+          text: 'Entrada de pedido processada e estoque atualizado!',
+          icon: 'success',
+          confirmButtonColor: '#28a745'
+        });
         setPedidoSelecionadoId('');
         setItensConferidos([]);
         setPesquisaItem('');
         buscarDadosIniciais(); 
       } else {
-        alert(dadosResultado.erro || "Erro ao processar entrada.");
+        Swal.fire({
+          title: 'Erro!',
+          text: dadosResultado.erro || "Erro ao processar entrada.",
+          icon: 'error',
+          confirmButtonColor: '#000'
+        });
       }
     } catch (err) {
       console.error("Erro na requisição de entrada:", err);
@@ -176,7 +232,12 @@ function DarEntrada() {
     const varejo = parseFloat(valorVarejoAvulso) || 0;
 
     if (!marcaObj || !modeloAvulso.trim() || !quantidade || quantidade <= 0) {
-      alert("Preencha todos os campos da entrada avulsa corretamente.");
+      Swal.fire({
+        title: 'Atenção!',
+        text: 'Preencha todos os campos da entrada avulsa corretamente.',
+        icon: 'warning',
+        confirmButtonColor: '#000'
+      });
       return;
     }
 
@@ -195,7 +256,12 @@ function DarEntrada() {
       });
 
       if (resposta.ok) {
-        alert("Tela avulsa integrada ao estoque com sucesso!");
+        Swal.fire({
+          title: 'Injetado!',
+          text: 'Tela avulsa integrada ao estoque com sucesso.',
+          icon: 'success',
+          confirmButtonColor: '#28a745'
+        });
         setModeloAvulso('');
         setQtdAvulsa('');
         setValorAtacadoAvulso('');
@@ -203,7 +269,12 @@ function DarEntrada() {
         setComAroAvulso(false);
         setModoAvulso(false);
       } else {
-        alert("Erro ao salvar entrada avulsa.");
+        Swal.fire({
+          title: 'Erro!',
+          text: 'Erro ao salvar entrada avulsa.',
+          icon: 'error',
+          confirmButtonColor: '#000'
+        });
       }
     } catch (err) {
       console.error("Erro ao enviar avulso:", err);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../css/Estoque.module.css'; // Reutilizando seu padrão visual
+import Swal from 'sweetalert2'; // NOVO: Modais bonitões integrados
 
 function ModalDarSaida({ isOpen, onClose, aoSucesso }) {
   const [telasEstoque, setTelasEstoque] = useState([]);
@@ -70,7 +71,13 @@ function ModalDarSaida({ isOpen, onClose, aoSucesso }) {
     const quantidade = parseInt(qtdSaida);
 
     if (!quantidade || quantidade <= 0) {
-      alert("Por favor, insira uma quantidade válida.");
+      Swal.fire({
+        title: 'Quantidade Inválida',
+        text: 'Por favor, insira uma quantidade válida maior que zero.',
+        icon: 'warning',
+        confirmButtonColor: '#e0a307',
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; } // <--- AQUI
+      });
       return;
     }
 
@@ -78,22 +85,44 @@ function ModalDarSaida({ isOpen, onClose, aoSucesso }) {
 
     if (tipoSaida === 'existente') {
       if (!telaSelecionadaId) {
-        alert("Nenhuma tela selecionada ou correspondente ao filtro aplicado.");
+        Swal.fire({
+          title: 'Atenção',
+          text: 'Nenhuma tela selecionada ou correspondente ao filtro aplicado.',
+          icon: 'warning',
+          confirmButtonColor: '#000',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
         return;
       }
 
       const telaReal = telasEstoque.find(t => t.id === parseInt(telaSelecionadaId));
       
       if (!telaReal) {
-        alert("Tela não encontrada.");
+        Swal.fire({
+          title: 'Erro',
+          text: 'Tela não encontrada no estoque local.',
+          icon: 'error',
+          confirmButtonColor: '#000',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
         return;
       }
 
+      // MODAL DE CONFIRMAÇÃO: Alerta de estoque negativo customizado
       if (telaReal.quantidade < quantidade || telaReal.quantidade === 0) {
-        const confirmar = window.confirm(
-          `⚠️ Atenção: Você está dando saída de ${quantidade} un, mas só tem ${telaReal.quantidade} un em estoque.\n\nO estoque ficará negativo. Deseja continuar assim mesmo?`
-        );
-        if (!confirmar) return; 
+        const resultadoConfirmacao = await Swal.fire({
+          title: '⚠️ Estoque Insuficiente',
+          html: `Você está dando saída de <b>${quantidade} un</b>, mas possui apenas <b>${telaReal.quantidade} un</b> em estoque.<br><br>O saldo deste item ficará negativo. Deseja continuar mesmo assim?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#000',
+          confirmButtonText: 'Sim, continuar',
+          cancelButtonText: 'Cancelar',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
+        
+        if (!resultadoConfirmacao.isConfirmed) return; 
       }
 
       dadosPayload.tela_id = telaReal.id;
@@ -101,7 +130,13 @@ function ModalDarSaida({ isOpen, onClose, aoSucesso }) {
       const marcaReal = marcas.find(m => m.id === parseInt(marcaSelecionadaId));
       
       if (!marcaReal || !novoModelo.trim()) {
-        alert("Marca e Modelo são obrigatórios para novos itens.");
+        Swal.fire({
+          title: 'Campos Obrigatórios',
+          text: 'Marca e Modelo são obrigatórios para registrar a saída de novos itens.',
+          icon: 'warning',
+          confirmButtonColor: '#e0a307',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
         return;
       }
       
@@ -118,7 +153,14 @@ function ModalDarSaida({ isOpen, onClose, aoSucesso }) {
       });
 
       if (resposta.ok) {
-        alert("Saída registrada com sucesso!");
+        Swal.fire({
+          title: 'Saída Registrada!',
+          text: 'A movimentação foi salva no sistema com sucesso.',
+          icon: 'success',
+          confirmButtonColor: '#28a745',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
+        
         setQtdSaida('');
         setNovoModelo('');
         setNovoComAro(false);
@@ -127,14 +169,26 @@ function ModalDarSaida({ isOpen, onClose, aoSucesso }) {
         onClose();
       } else {
         const erro = await resposta.json();
-        alert(erro.erro || "Erro ao registrar saída.");
+        Swal.fire({
+          title: 'Erro no Servidor',
+          text: erro.erro || "Não foi possível registrar a saída.",
+          icon: 'error',
+          confirmButtonColor: '#000',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
       }
     } catch (err) {
       console.error("Erro na requisição de saída:", err);
+      Swal.fire({
+        title: 'Erro Crítico',
+        text: 'Falha de comunicação com o servidor.',
+        icon: 'error',
+        confirmButtonColor: '#000',
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+      });
     }
   };
 
-  // MUDANÇA ESTRUTURAL: Agora retornamos a renderização condicional direto no corpo principal
   return isOpen ? (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',

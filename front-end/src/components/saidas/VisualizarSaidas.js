@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../css/VisualizarSaidas.module.css';
+import Swal from 'sweetalert2';
 
 function VisualizarSaidas() {
   const [saidas, setSaidas] = useState([]);
@@ -55,7 +56,16 @@ function VisualizarSaidas() {
         carregarSaidas();
       } else {
         const erro = await resposta.json();
-        alert(erro.erro || "Erro ao salvar.");
+Swal.fire({
+  title: 'Erro ao Salvar',
+  text: erro.erro || "Não foi possível processar a alteração.",
+  icon: 'error',
+  confirmButtonColor: '#000', // Mantendo o padrão dos seus botões
+  didOpen: () => {
+    // Garante que o modal de erro fique por cima de tudo
+    Swal.getContainer().style.zIndex = "3000";
+  }
+});
       }
     } catch (erro) {
       console.error("Erro ao salvar edição:", erro);
@@ -63,22 +73,64 @@ function VisualizarSaidas() {
   };
 
   const excluirSaida = async (id) => {
-    if (window.confirm("Tem certeza que deseja excluir esta linha? O estoque original será restaurado.")) {
-      try {
-        const resposta = await fetch(`/api/saidas/${id}`, {
-          method: 'DELETE'
-        });
-        if (resposta.ok) {
-          carregarSaidas();
-        } else {
-          const erro = await resposta.json();
-          alert(erro.erro || "Erro ao excluir.");
-        }
-      } catch (erro) {
-        console.error("Erro ao excluir saída:", erro);
-      }
+  // 1. Abre o modal de confirmação com aviso sobre a restauração do estoque
+  const resultadoConfirmacao = await Swal.fire({
+    title: 'Excluir Saída?',
+    html: 'Tem certeza que deseja excluir esta linha?<br><br><b>Nota:</b> O estoque original deste item será restaurado automaticamente.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33', // Vermelho para ação de exclusão
+    cancelButtonColor: '#000',  // Preto para cancelar
+    confirmButtonText: 'Sim, excluir',
+    cancelButtonText: 'Cancelar',
+    didOpen: () => {
+      // Mantém o modal acima de qualquer outra camada visual
+      Swal.getContainer().style.zIndex = "3000";
     }
-  };
+  });
+
+  // Se o usuário confirmou a ação
+  if (resultadoConfirmacao.isConfirmed) {
+    try {
+      const resposta = await fetch(`/api/saidas/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (resposta.ok) {
+        // Alerta de sucesso
+        Swal.fire({
+          title: 'Excluído!',
+          text: 'A saída foi removida e o estoque foi restaurado.',
+          icon: 'success',
+          confirmButtonColor: '#28a745',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
+        
+        carregarSaidas(); // Atualiza a tabela de saídas
+      } else {
+        const erro = await resposta.json();
+        // Alerta se o back-end rejeitar a requisição
+        Swal.fire({
+          title: 'Erro ao Excluir',
+          text: erro.erro || "Não foi possível processar a exclusão.",
+          icon: 'error',
+          confirmButtonColor: '#000',
+          didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+        });
+      }
+    } catch (erro) {
+      console.error("Erro ao excluir saída:", erro);
+      // Alerta de erro de rede / conexão
+      Swal.fire({
+        title: 'Erro Crítico',
+        text: 'Falha na comunicação com o servidor.',
+        icon: 'error',
+        confirmButtonColor: '#000',
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
+      });
+    }
+  }
+};
 
   // =================================================================
   // 3. LÓGICA DE FILTRO E ORDENAÇÃO (Idêntica ao Estoque)
@@ -99,17 +151,37 @@ function VisualizarSaidas() {
   const handleFecharPedido = async () => {
   // 1. Verifica se existem itens na tabela antes de tentar fechar
   if (saidas.length === 0) {
-    alert("Não há nenhuma tela na lista de saídas para gerar um pedido!");
-    return;
-  }
+  Swal.fire({
+    title: 'Lista Vazia',
+    text: 'Não há nenhuma tela na lista de saídas para gerar um pedido!',
+    icon: 'info',
+    confirmButtonColor: '#000', // Mantém o padrão preto dos seus botões
+    didOpen: () => {
+      // Garante que o modal fique por cima de qualquer outra camada da tela
+      Swal.getContainer().style.zIndex = "3000";
+    }
+  });
+  return;
+}
 
   // 2. Pede a confirmação do usuário
-  const confirmar = window.confirm(
-    "Deseja realmente fechar este pedido?\n\nIsso irá salvar todas as telas atuais em um novo histórico de pedidos e limpará esta tabela de saídas."
-  );
+const resultadoConfirmacao = await Swal.fire({
+  title: 'Fechar Pedido?',
+  html: 'Deseja realmente fechar este pedido?<br><br><b>Atenção:</b> Isso irá salvar todas as telas atuais em um novo histórico de pedidos e limpará esta tabela de saídas.',
+  icon: 'question',
+  showCancelButton: true,
+  confirmButtonColor: '#28a745', // Verde para confirmar o fechamento
+  cancelButtonColor: '#000',    // Preto para cancelar/voltar
+  confirmButtonText: 'Sim, fechar pedido',
+  cancelButtonText: 'Voltar',
+  didOpen: () => {
+    Swal.getContainer().style.zIndex = "3000"; // Mantém acima de qualquer modal
+  }
+});
 
-  if (!confirmar) return;
-
+// Se o usuário clicar em Cancelar ou fechar o modal, ele para a execução aqui
+if (!resultadoConfirmacao.isConfirmed) return;
+// --- ATÉ AQUI ---
   try {
     // 3. Dispara a requisição para o Flask
     const resposta = await fetch('/api/pedidos/fechar', {
@@ -117,17 +189,45 @@ function VisualizarSaidas() {
       headers: { 'Content-Type': 'application/json' }
     });
 
-    if (resposta.ok) {
-      alert("Pedido fechado com sucesso! A lista de saídas foi resetada.");
+if (resposta.ok) {
+      // Alerta de sucesso moderno com ícone de check verde
+      Swal.fire({
+        title: 'Pedido Fechado!',
+        text: 'Pedido fechado com sucesso! A lista de saídas foi resetada.',
+        icon: 'success',
+        confirmButtonColor: '#28a745',
+        didOpen: () => {
+          Swal.getContainer().style.zIndex = "3000";
+        }
+      });
+      
       // 4. Recarrega a tabela de saídas (que agora virá vazia do banco)
       carregarSaidas();
     } else {
       const erro = await resposta.json();
-      alert(erro.erro || "Erro ao fechar o pedido.");
+      // Alerta se o servidor recusar ou devolver algum erro de regra de negócio
+      Swal.fire({
+        title: 'Erro ao Fechar',
+        text: erro.erro || "Não foi possível concluir o pedido.",
+        icon: 'error',
+        confirmButtonColor: '#000',
+        didOpen: () => {
+          Swal.getContainer().style.zIndex = "3000";
+        }
+      });
     }
   } catch (erro) {
     console.error("Erro ao fechar pedido:", erro);
-    alert("Erro de conexão com o servidor.");
+    // Alerta de erro caso o servidor esteja offline ou a rede caia
+    Swal.fire({
+      title: 'Erro de Conexão',
+      text: 'Não foi possível se comunicar com o servidor.',
+      icon: 'error',
+      confirmButtonColor: '#000',
+      didOpen: () => {
+        Swal.getContainer().style.zIndex = "3000";
+      }
+    });
   }
 };
 

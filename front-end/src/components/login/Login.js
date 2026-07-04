@@ -2,6 +2,7 @@ import React from 'react';
 import styles from '../css/Login.module.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 function Login({ onLoginSuccess }){
 
@@ -30,7 +31,16 @@ function Login({ onLoginSuccess }){
       // Redireciona para o painel principal
       navigate('/home');
     } else {
-      alert('Usuário ou senha incorretos!');
+      Swal.fire({
+  title: 'Falha no Login',
+  text: 'Usuário ou senha incorretos!',
+  icon: 'error',
+  confirmButtonColor: '#000', // Mantendo o padrão preto dos seus botões
+  didOpen: () => {
+    // Garante que o aviso não suma atrás de nenhuma janela ou tela de fundo
+    Swal.getContainer().style.zIndex = "3000";
+  }
+});
     }
   };
 
