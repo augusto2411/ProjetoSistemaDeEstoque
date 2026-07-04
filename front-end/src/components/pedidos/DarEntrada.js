@@ -8,7 +8,7 @@ function DarEntrada() {
   const [valorAtacadoAvulso, setValorAtacadoAvulso] = useState('');
   const [valorVarejoAvulso, setValorVarejoAvulso] = useState('');
   
-  // NOVO: Estado para armazenar o termo de busca na tabela de conferência
+  // Estado para armazenar o termo de busca na tabela de conferência
   const [pesquisaItem, setPesquisaItem] = useState('');
 
   // Estados para o formulário de Entrada Avulsa (Tela fora do pedido)
@@ -76,16 +76,22 @@ function DarEntrada() {
     );
   };
 
-  // NOVO: 3.5 LÓGICA DE FILTRAGEM EM TEMPO REAL DA TABELA
-  const itensFiltrados = itensConferidos.filter(item => {
-    const termo = pesquisaItem.toLowerCase();
-    return (
-      item.marca.toLowerCase().includes(termo) ||
-      item.modelo.toLowerCase().includes(termo)
-    );
-  });
+  // AJUSTADO: LÓGICA DE FILTRAGEM + ORDENAÇÃO ALFABÉTICA SIMULTÂNEA
+  const itensFiltrados = itensConferidos
+    .filter(item => {
+      const termo = pesquisaItem.toLowerCase();
+      return (
+        item.marca.toLowerCase().includes(termo) ||
+        item.modelo.toLowerCase().includes(termo)
+      );
+    })
+    .sort((a, b) => {
+      const compMarca = a.marca.localeCompare(b.marca);
+      if (compMarca !== 0) return compMarca;
+      return a.modelo.localeCompare(b.modelo);
+    });
 
-  // 4. SUBMETE A CONFERÊNCIA DO PEDIDO PARA O BACK-END (COM VALIDAÇÃO DE PREÇO)
+  // 4. SUBMETE A CONFERÊNCIA DO PEDIDO PARA O BACK-END
   const handleConfirmarEntradaPedido = async (e) => {
     e.preventDefault();
     if (!pedidoSelecionadoId) return;
@@ -96,18 +102,19 @@ function DarEntrada() {
     if (!confirmar) return;
 
     let payload = {
-      itens: itensConferidos, // ATENÇÃO: Enviamos a lista completa (itensConferidos), não a filtrada!
+      itens: itensConferidos, 
       confirmar_precos: false
     };
 
     try {
-      let resposta = await fetch(`/api/pedidos/dar-entrada/${pedidoSelecionadoId}`, {
+      // CORREÇÃO AQUI: Mudamos o nome de 'resposta' para 'resEnvio' para evitar conflitos de escopo
+      let resEnvio = await fetch(`/api/pedidos/dar-entrada/${pedidoSelecionadoId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      let dadosResultado = await resposta.json();
+      let dadosResultado = await resEnvio.json();
 
       if (dadosResultado.requer_precos) {
         let novosItensComPreco = [...itensConferidos];
@@ -138,16 +145,16 @@ function DarEntrada() {
         payload.itens = novosItensComPreco;
         payload.confirmar_precos = true;
 
-        resposta = await fetch(`/api/pedidos/dar-entrada/${pedidoSelecionadoId}`, {
+        resEnvio = await fetch(`/api/pedidos/dar-entrada/${pedidoSelecionadoId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        dadosResultado = await resposta.json();
+        dadosResultado = await resEnvio.json();
       }
 
-      if (resposta.ok) {
-        alert("Entrada de pedido processada e estoque updated com sucesso!");
+      if (resEnvio.ok) {
+        alert("Entrada de pedido processada e estoque atualizado com sucesso!");
         setPedidoSelecionadoId('');
         setItensConferidos([]);
         setPesquisaItem('');
@@ -207,7 +214,6 @@ function DarEntrada() {
     <div className={styles.estoqueContainer}>
       <div className={styles.estoqueBox}>
         
-        {/* Topo com Título e Botão de Alternância */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
           <h1 style={{ color: '#000', fontSize: '1.8rem', margin: 0 }}>
             {modoAvulso ? "📥 Entrada de Tela Avulsa" : "📝 Conferência e Entrada de Pedidos"}
@@ -265,9 +271,7 @@ function DarEntrada() {
         ) : (
           /* ==================== MODO CONFERÊNCIA DE PEDIDOS ==================== */
           <div>
-            {/* Seletor de Pedidos Pendentes */}
             <div style={{ marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-              
               {itensConferidos.length > 0 && (
                 <div style={{ flex: 1, minWidth: '250px' }}>
                   <label style={{ fontWeight: 'bold', color: '#000', fontSize: '1.1rem', display: 'block', marginBottom: '5px' }}>Busca:</label>
@@ -282,7 +286,6 @@ function DarEntrada() {
                 </div>
               )}
               <div>
-                
                 <label style={{ fontWeight: 'bold', color: '#000', fontSize: '1.1rem', display: 'block', marginBottom: '5px' }}>Escolha o Pedido:</label>
                 <select 
                   className={styles.inputSelect} 
@@ -296,9 +299,6 @@ function DarEntrada() {
                   ))}
                 </select>
               </div>
-
-              {/* NOVO CAMPO: INPUT DE BUSCA DINÂMICA */}
-              
             </div>
 
             {itensConferidos.length > 0 ? (
@@ -314,7 +314,6 @@ function DarEntrada() {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* ALTERADO: Agora mapeia os "itensFiltrados" ao invés da lista bruta */}
                     {itensFiltrados.map((item) => (
                       <tr key={item.id}>
                         <td style={{ textTransform: 'uppercase' }}>{item.marca}</td>
@@ -334,11 +333,10 @@ function DarEntrada() {
                       </tr>
                     ))}
 
-                    {/* Caso o filtro não encontre nada */}
                     {itensFiltrados.length === 0 && (
                       <tr>
                         <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: 'red', fontWeight: 'bold' }}>
-                          Nenhuma resultado encontrado para a busca "{pesquisaItem}".
+                          Nenhum resultado encontrado para a busca "{pesquisaItem}".
                         </td>
                       </tr>
                     )}
@@ -358,7 +356,6 @@ function DarEntrada() {
             )}
           </div>
         )}
-
       </div>
     </div>
   );

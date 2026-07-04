@@ -12,9 +12,10 @@
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.0",
     "react-scripts": "5.0.1",
+    "sweetalert2": "^11.26.25",
+    "sweetalert2-react-content": "^5.1.2",
     "web-vitals": "^2.1.4"
   },
-  
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -27,7 +28,6 @@
       "react-app/jest"
     ]
   },
-  
   "browserslist": {
     "production": [
       ">0.2%",
@@ -40,5 +40,4 @@
       "last 1 safari version"
     ]
   }
-  
 }

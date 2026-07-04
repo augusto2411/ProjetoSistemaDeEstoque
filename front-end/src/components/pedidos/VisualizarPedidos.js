@@ -5,7 +5,7 @@ function VisualizarPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [pedidoAbertoId, setPedidoAbertoId] = useState(null); 
   const [pesquisa, setPesquisa] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('TODOS'); // <-- NOVO: Estado para controlar o filtro ('TODOS', 'PENDENTE', 'CONCLUIDO')
+  const [filtroStatus, setFiltroStatus] = useState('TODOS'); 
 
   const carregarPedidos = async () => {
     try {
@@ -29,13 +29,11 @@ function VisualizarPedidos() {
 
   // LÓGICA DE FILTRAGEM (Pesquisa + Status)
   const pedidosFiltrados = pedidos.filter(pedido => {
-    // 1. Filtro por texto (Marca ou Modelo)
     const bateTexto = !pesquisa || pedido.itens.some(item => 
       item.modelo.toLowerCase().includes(pesquisa.toLowerCase()) ||
       item.marca.toLowerCase().includes(pesquisa.toLowerCase())
     );
 
-    // 2. Filtro por Status da Tag
     const bateStatus = filtroStatus === 'TODOS' || pedido.status === filtroStatus;
 
     return bateTexto && bateStatus;
@@ -59,7 +57,6 @@ function VisualizarPedidos() {
             onChange={(e) => setPesquisa(e.target.value)}
           />
 
-          {/* NOVO: Menu para escolher qual status mostrar */}
           <select 
             className={styles.inputSelect}
             style={{ width: '200px', padding: '8px' }}
@@ -95,7 +92,6 @@ function VisualizarPedidos() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <span>📦 PEDIDO #{pedido.id}</span>
                   
-                  {/* NOVO: Tag estilizada de Status do Pedido */}
                   <span style={{
                     backgroundColor: pedido.status === 'CONCLUIDO' ? '#28a745' : '#dc3545',
                     color: '#fff',
@@ -119,36 +115,43 @@ function VisualizarPedidos() {
               {pedidoAbertoId === pedido.id && (
                 <div style={{ padding: '15px', backgroundColor: '#fff' }}>
                   <table className={styles.tabela} style={{ marginTop: '0px', boxShadow: 'none' }}>
-                   <thead>
-  <tr style={{ backgroundColor: '#eaeaea' }}>
-    <th>MARCA</th>
-    <th>MODELO</th>
-    <th>ARO</th>
-    <th>QTD PEDIDA</th>
-    {/* Se o pedido estiver concluído, mostra a coluna do que chegou */}
-    {pedido.status === 'CONCLUIDO' && <th>QTD RECEBIDA</th>}
-  </tr>
-</thead>
-<tbody>
-  {pedido.itens.map((item, index) => (
-    <tr key={index}>
-      <td style={{ textTransform: 'uppercase' }}>{item.marca}</td>
-      <td style={{ textTransform: 'uppercase' }}>{item.modelo}</td>
-      <td style={{ textTransform: 'uppercase' }}>{item.com_aro ? 'COM ARO' : 'SEM ARO'}</td>
-      <td style={{ fontWeight: 'bold' }}>{item.quantidade} un</td>
-      
-      {/* Mostra o que veio e aplica uma cor cinza ou vermelha se veio faltando */}
-      {pedido.status === 'CONCLUIDO' && (
-        <td style={{ 
-          fontWeight: 'bold', 
-          color: item.qtd_recebida < item.quantidade ? '#dc3545' : '#28a745' 
-        }}>
-          {item.qtd_recebida} un {item.qtd_recebida < item.quantidade && '⚠️ (Falta)'}
-        </td>
-      )}
-    </tr>
-  ))}
-</tbody>
+                    <thead>
+                      <tr style={{ backgroundColor: '#eaeaea' }}>
+                        <th>MARCA</th>
+                        <th>MODELO</th>
+                        <th>ARO</th>
+                        <th>QTD PEDIDA</th>
+                        {pedido.status === 'CONCLUIDO' && <th>QTD RECEBIDA</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* O AJUSTE ESTÁ AQUI: Criamos uma cópia dos itens e ordenamos por Marca e Modelo */}
+                      {[...pedido.itens]
+                        .sort((a, b) => {
+                          // Primeiro compara por Marca
+                          const compMarca = a.marca.localeCompare(b.marca);
+                          if (compMarca !== 0) return compMarca;
+                          // Se a marca for igual, desempata pelo Modelo
+                          return a.modelo.localeCompare(b.modelo);
+                        })
+                        .map((item, index) => (
+                          <tr key={index}>
+                            <td style={{ textTransform: 'uppercase' }}>{item.marca}</td>
+                            <td style={{ textTransform: 'uppercase' }}>{item.modelo}</td>
+                            <td style={{ textTransform: 'uppercase' }}>{item.com_aro ? 'COM ARO' : 'SEM ARO'}</td>
+                            <td style={{ fontWeight: 'bold' }}>{item.quantidade} un</td>
+                            
+                            {pedido.status === 'CONCLUIDO' && (
+                              <td style={{ 
+                                fontWeight: 'bold', 
+                                color: item.qtd_recebida < item.quantidade ? '#dc3545' : '#28a745' 
+                              }}>
+                                {item.qtd_recebida} un {item.qtd_recebida < item.quantidade && '⚠️ (Falta)'}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                    </tbody>
                   </table>
                 </div>
               )}
@@ -156,7 +159,6 @@ function VisualizarPedidos() {
             </div>
           ))}
 
-          {/* Aviso de lista vazia */}
           {pedidosFiltrados.length === 0 && (
             <div style={{ textAlign: 'center', color: '#000', padding: '20px', backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: '6px' }}>
               Nenhum pedido correspondente ao filtro foi encontrado.
