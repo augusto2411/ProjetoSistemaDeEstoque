@@ -182,51 +182,57 @@ const resultadoConfirmacao = await Swal.fire({
 // Se o usuário clicar em Cancelar ou fechar o modal, ele para a execução aqui
 if (!resultadoConfirmacao.isConfirmed) return;
 // --- ATÉ AQUI ---
-  try {
-    // 3. Dispara a requisição para o Flask
+try {
     const resposta = await fetch('/api/pedidos/fechar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ saidas: saidas }) // envia os dados atuais se necessário
     });
 
-if (resposta.ok) {
-      // Alerta de sucesso moderno com ícone de check verde
+    if (resposta.ok) {
+      // CAPTURA O ARQUIVO BINÁRIO (BLOB) DO EXCEL
+      const blob = await resposta.blob();
+      
+      // Cria um link invisível no navegador para forçar o download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pedido_telas_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpa o link da memória
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
       Swal.fire({
-        title: 'Pedido Fechado!',
-        text: 'Pedido fechado com sucesso! A lista de saídas foi resetada.',
+        title: 'Pedido Gerado!',
+        text: 'O arquivo Excel foi baixado e a lista de saídas foi resetada com sucesso.',
         icon: 'success',
         confirmButtonColor: '#28a745',
-        didOpen: () => {
-          Swal.getContainer().style.zIndex = "3000";
-        }
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
       });
-      
-      // 4. Recarrega a tabela de saídas (que agora virá vazia do banco)
-      carregarSaidas();
+
+      carregarSaidas(); // Recarrega a tabela limpa
     } else {
+      // Caso dê algum erro antes de gerar o arquivo
       const erro = await resposta.json();
-      // Alerta se o servidor recusar ou devolver algum erro de regra de negócio
       Swal.fire({
-        title: 'Erro ao Fechar',
-        text: erro.erro || "Não foi possível concluir o pedido.",
+        title: 'Erro ao Gerar Pedido',
+        text: erro.erro || "Não foi possível criar o arquivo de Excel.",
         icon: 'error',
         confirmButtonColor: '#000',
-        didOpen: () => {
-          Swal.getContainer().style.zIndex = "3000";
-        }
+        didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
       });
     }
   } catch (erro) {
     console.error("Erro ao fechar pedido:", erro);
-    // Alerta de erro caso o servidor esteja offline ou a rede caia
     Swal.fire({
       title: 'Erro de Conexão',
-      text: 'Não foi possível se comunicar com o servidor.',
+      text: 'Falha de comunicação com o servidor ao gerar o Excel.',
       icon: 'error',
       confirmButtonColor: '#000',
-      didOpen: () => {
-        Swal.getContainer().style.zIndex = "3000";
-      }
+      didOpen: () => { Swal.getContainer().style.zIndex = "3000"; }
     });
   }
 };

@@ -4,7 +4,9 @@ from flask import Flask, request, jsonify, session
 from database import db
 from models import Usuario, Marca, Tela, SaidaTela, Pedido, ItemPedido
 from sqlalchemy import func
-
+import io
+import xlsxwriter
+from flask import send_file
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -100,19 +102,23 @@ def dar_entrada_pedido(pedido_id):
                 if not item_pedido or int(item_conferido['qtd_recebida']) <= 0:
                     continue
                 
-                # CORREÇÃO DA BUSCA: Ignora espaços extras e maiúsculas/minúsculas
                 modelo_termo = item_pedido.modelo.strip().lower() if item_pedido.modelo else ""
                 tela_estoque = Tela.query.filter(
                     func.trim(func.lower(Tela.modelo)) == modelo_termo,
                     Tela.com_aro == item_pedido.com_aro
                 ).first()
                 
-                # Se a tela realmente não existe OU se existe mas está com preço zerado
-                if not tela_estoque or (tela_estoque.valor_atacado == 0 or tela_estoque.valor_atacado is None):
+                # Verifica individualmente o que está zerado ou nulo
+                falta_atacado = not tela_estoque or (tela_estoque.valor_atacado == 0 or tela_estoque.valor_atacado is None)
+                falta_varejo = not tela_estoque or (tela_estoque.valor_varejo == 0 or tela_estoque.valor_varejo is None)
+                
+                if falta_atacado or falta_varejo:
                     itens_sem_preco.append({
                         'id': item_conferido['id'],
                         'modelo': item_pedido.modelo,
-                        'marca': item_pedido.marca
+                        'marca': item_pedido.marca,
+                        'falta_atacado': falta_atacado,  # Enviando a flag para o React
+                        'falta_varejo': falta_varejo     # Enviando a flag para o React
                     })
             
             if itens_sem_preco:
@@ -122,11 +128,12 @@ def dar_entrada_pedido(pedido_id):
                 }), 200
 
         # --- FASE 2: PROCESSAMENTO DA ENTRADA REAIS ---
+        # ATENÇÃO: Ajustado o mapeamento para aceitar o envio mesmo se apenas um dos preços for atualizado
         precos_enviados = {
             int(i['id']): {
-                'atacado': float(i.get('preco_custo', 0)),
-                'varejo': float(i.get('preco_venda', 0))
-            } for i in dados.get('itens', []) if 'preco_custo' in i
+                'atacado': float(i.get('preco_custo', 0)) if i.get('preco_custo') is not None else None,
+                'varejo': float(i.get('preco_venda', 0)) if i.get('preco_venda') is not None else None
+            } for i in dados.get('itens', []) if 'preco_custo' in i or 'preco_venda' in i
         }
 
         for item_conferido in dados.get('itens', []):
@@ -146,13 +153,18 @@ def dar_entrada_pedido(pedido_id):
                 ).first()
                 
                 id_item = int(item_conferido['id'])
-                preco_atacado_novo = precos_enviados.get(id_item, {}).get('atacado', 0.0)
-                preco_varejo_novo = precos_enviados.get(id_item, {}).get('varejo', 0.0)
+                info_preco = precos_enviados.get(id_item, {})
+                preco_atacado_novo = info_preco.get('atacado')
+                preco_varejo_novo = info_preco.get('varejo')
 
                 if tela_estoque:
                     tela_estoque.quantidade += qtd_recebida
-                    if (tela_estoque.valor_atacado == 0 or tela_estoque.valor_atacado is None) and preco_atacado_novo > 0:
+                    
+                    # CORREÇÃO CRÍTICA: Atualização independente dos preços se estiverem zerados/nulos
+                    if (tela_estoque.valor_atacado == 0 or tela_estoque.valor_atacado is None) and preco_atacado_novo is not None and preco_atacado_novo > 0:
                         tela_estoque.valor_atacado = preco_atacado_novo
+                        
+                    if (tela_estoque.valor_varejo == 0 or tela_estoque.valor_varejo is None) and preco_varejo_novo is not None and preco_varejo_novo > 0:
                         tela_estoque.valor_varejo = preco_varejo_novo
                 else:
                     from models import Marca
@@ -162,8 +174,8 @@ def dar_entrada_pedido(pedido_id):
                         modelo=item_pedido.modelo.strip().upper(),
                         quantidade=qtd_recebida,
                         com_aro=item_pedido.com_aro,
-                        valor_atacado=preco_atacado_novo,
-                        valor_varejo=preco_varejo_novo
+                        valor_atacado=preco_atacado_novo if preco_atacado_novo else 0.0,
+                        valor_varejo=preco_varejo_novo if preco_varejo_novo else 0.0
                     )
                     db.session.add(nova_tela)
 
@@ -426,7 +438,7 @@ def editar_saida(id):
 def fechar_pedido():
     try:
         # 1. Pega todas as saídas atuais (o rascunho)
-        saidas_atuis = SaidaTela.query.all()
+        saidas_atuis = SaidaTela.query.order_by(SaidaTela.marca.asc(), SaidaTela.modelo.asc()).all()
         
         if not saidas_atuis:
             return jsonify({'erro': 'Não há nenhuma tela na lista de saídas para gerar um pedido.'}), 400
@@ -436,7 +448,31 @@ def fechar_pedido():
         db.session.add(novo_pedido)
         db.session.flush() # Gera o ID do pedido antes do commit definitivo
         
-        # 3. Transfere cada item do rascunho para o histórico de pedidos
+        # --- PREPARAÇÃO DO EXCEL EM MEMÓRIA ---
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        worksheet = workbook.add_worksheet("Pedido")
+        
+        # Estilização básica para o Excel ficar organizado
+        header_format = workbook.add_format({
+            'bold': True, 'text_wrap': True, 'valign': 'vcenter', 'align': 'center',
+            'fg_color': '#1F497D', 'font_color': 'white', 'border': 1
+        })
+        data_format_left = workbook.add_format({'valign': 'vcenter', 'align': 'left', 'border': 1})
+        data_format_center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
+        
+        # Escreve o cabeçalho
+        worksheet.write(0, 0, "Quantidade", header_format)
+        worksheet.write(0, 1, "Modelo da Tela", header_format)
+        
+        # Configura a largura das colunas para o texto não ficar cortado
+        worksheet.set_column(0, 0, 15)
+        worksheet.set_column(1, 1, 50)
+        
+        row_idx = 1
+        # --------------------------------------
+
+        # 3. Transfere cada item do rascunho para o histórico e adiciona na planilha
         for s in saidas_atuis:
             item_historico = ItemPedido(
                 pedido_id=novo_pedido.id,
@@ -447,11 +483,40 @@ def fechar_pedido():
             )
             db.session.add(item_historico)
             
+            # --- FORMATAÇÃO DO TEXTO PRO EXCEL ---
+            marca_txt = str(s.marca or '').strip().upper()
+            modelo_txt = str(s.modelo or '').strip().upper()
+            aro_txt = "COM ARO" if s.com_aro else "SEM ARO"
+            
+            # Resultado final na mesma célula: "IPHONE 11 (COM ARO)" ou "MOTO G22 (SEM ARO)"
+            if marca_txt == "APPLE":
+                texto_completo = f"{modelo_txt}".strip()
+            else:
+                texto_completo = f"{modelo_txt} {aro_txt}".strip()
+            
+            # Escreve a linha na planilha
+            worksheet.write(row_idx, 0, s.quantidade, data_format_center)
+            worksheet.write(row_idx, 1, texto_completo, data_format_left)
+            row_idx += 1
+            # -------------------------------------
+            
             # 4. Remove o item da tabela temporária de saídas
             db.session.delete(s)
             
+        # Fecha o workbook para salvar as alterações na memória
+        workbook.close()
+        output.seek(0)
+        
+        # 5. Se o Excel foi montado sem erros, consolida no Banco de Dados
         db.session.commit()
-        return jsonify({'mensagem': 'Pedido fechado com sucesso e lista de saídas resetada!', 'pedido_id': novo_pedido.id}), 201
+        
+        # 6. Retorna o arquivo gerado direto para download no navegador
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=f"pedido_id_{novo_pedido.id}.xlsx"
+        )
 
     except Exception as e:
         db.session.rollback()
@@ -482,4 +547,5 @@ def listar_pedidos():
     return jsonify(resultado), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # host='0.0.0.0' faz o Flask escutar toda a rede local, não só o localhost
+    app.run(host='0.0.0.0', port=5000, debug=False)
